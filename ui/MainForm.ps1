@@ -134,20 +134,46 @@ function New-PwmSearchTab {
 
     & $refreshWorkspaces
 
-    $addWsBtn.add_Click({
+    $addWorkspace = {
         $dialog = New-Object System.Windows.Forms.FolderBrowserDialog
         if ($dialog.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) {
             [void](Add-PwmWorkspace -Repository $Repository -Path $dialog.SelectedPath)
             & $refreshWorkspaces
         }
-    }.GetNewClosure())
+    }.GetNewClosure()
 
-    $removeWsBtn.add_Click({
+    $removeWorkspace = {
         if ($workspaceList.SelectedItem) {
             [void](Remove-PwmWorkspace -Repository $Repository -Path $workspaceList.SelectedItem)
             & $refreshWorkspaces
         }
-    }.GetNewClosure())
+    }.GetNewClosure()
+
+    $addWsBtn.add_Click($addWorkspace)
+    $removeWsBtn.add_Click($removeWorkspace)
+
+    # Right-click context menu mirrors the add / remove buttons.
+    $wsMenu = New-Object System.Windows.Forms.ContextMenuStrip
+    [void]$wsMenu.Items.Add('添加目录', $null, [System.EventHandler]({ & $addWorkspace }.GetNewClosure()))
+    [void]$wsMenu.Items.Add('移除', $null, [System.EventHandler]({ & $removeWorkspace }.GetNewClosure()))
+    $workspaceList.ContextMenuStrip = $wsMenu
+
+    # Drag a folder (or file) from Explorer onto the list to add it as a search directory.
+    $workspaceList.AllowDrop = $true
+    $workspaceList.add_DragEnter([System.Windows.Forms.DragEventHandler]{
+        param($eventSender, $eventArgs)
+        if ($eventArgs.Data.GetDataPresent([System.Windows.Forms.DataFormats]::FileDrop)) {
+            $eventArgs.Effect = [System.Windows.Forms.DragDropEffects]::Copy
+        }
+    })
+    $workspaceList.add_DragDrop([System.Windows.Forms.DragEventHandler]({
+        param($eventSender, $eventArgs)
+        $dropped = $eventArgs.Data.GetData([System.Windows.Forms.DataFormats]::FileDrop)
+        foreach ($folder in (ConvertTo-PwmFolderPath -Path $dropped)) {
+            [void](Add-PwmWorkspace -Repository $Repository -Path $folder)
+        }
+        & $refreshWorkspaces
+    }.GetNewClosure()))
 
     $doSearch = {
         $paths = @(Get-PwmWorkspace -Repository $Repository | ForEach-Object { $_.path })
@@ -238,28 +264,28 @@ function New-PwmFavoritesTab {
     }.GetNewClosure()
     & $refresh
 
-    $addBtn.add_Click({
+    $addFavorite = {
         $dialog = New-Object System.Windows.Forms.FolderBrowserDialog
         if ($dialog.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) {
             [void](Add-PwmFavorite -Repository $Repository -Path $dialog.SelectedPath)
             & $refresh
         }
-    }.GetNewClosure())
+    }.GetNewClosure()
 
-    $openBtn.add_Click({
+    $openFavorite = {
         if ($list.SelectedIndex -ge 0) {
             Open-PwmFavorite -Path $script:favItems[$list.SelectedIndex].path
         }
-    }.GetNewClosure())
+    }.GetNewClosure()
 
-    $removeBtn.add_Click({
+    $removeFavorite = {
         if ($list.SelectedIndex -ge 0) {
             [void](Remove-PwmFavorite -Repository $Repository -Id $script:favItems[$list.SelectedIndex].id)
             & $refresh
         }
-    }.GetNewClosure())
+    }.GetNewClosure()
 
-    $renameBtn.add_Click({
+    $renameFavorite = {
         if ($list.SelectedIndex -ge 0) {
             $current = $script:favItems[$list.SelectedIndex]
             $newName = Show-PwmInputDialog -Title '重命名快链' -Prompt '请输入新的名称：' -Default $current.name
@@ -268,7 +294,12 @@ function New-PwmFavoritesTab {
                 & $refresh
             }
         }
-    }.GetNewClosure())
+    }.GetNewClosure()
+
+    $addBtn.add_Click($addFavorite)
+    $openBtn.add_Click($openFavorite)
+    $removeBtn.add_Click($removeFavorite)
+    $renameBtn.add_Click($renameFavorite)
 
     $moveFavorite = {
         param([int]$Delta)
@@ -290,6 +321,33 @@ function New-PwmFavoritesTab {
 
     $upBtn.add_Click({ & $moveFavorite -Delta -1 }.GetNewClosure())
     $downBtn.add_Click({ & $moveFavorite -Delta 1 }.GetNewClosure())
+
+    # Right-click context menu mirrors the side buttons.
+    $favMenu = New-Object System.Windows.Forms.ContextMenuStrip
+    [void]$favMenu.Items.Add('添加', $null, [System.EventHandler]({ & $addFavorite }.GetNewClosure()))
+    [void]$favMenu.Items.Add('在资源管理器打开', $null, [System.EventHandler]({ & $openFavorite }.GetNewClosure()))
+    [void]$favMenu.Items.Add('重命名', $null, [System.EventHandler]({ & $renameFavorite }.GetNewClosure()))
+    [void]$favMenu.Items.Add('删除', $null, [System.EventHandler]({ & $removeFavorite }.GetNewClosure()))
+    [void]$favMenu.Items.Add('上移', $null, [System.EventHandler]({ & $moveFavorite -Delta -1 }.GetNewClosure()))
+    [void]$favMenu.Items.Add('下移', $null, [System.EventHandler]({ & $moveFavorite -Delta 1 }.GetNewClosure()))
+    $list.ContextMenuStrip = $favMenu
+
+    # Drag a folder (or file) from Explorer onto the list to add it as a quick-link.
+    $list.AllowDrop = $true
+    $list.add_DragEnter([System.Windows.Forms.DragEventHandler]{
+        param($eventSender, $eventArgs)
+        if ($eventArgs.Data.GetDataPresent([System.Windows.Forms.DataFormats]::FileDrop)) {
+            $eventArgs.Effect = [System.Windows.Forms.DragDropEffects]::Copy
+        }
+    })
+    $list.add_DragDrop([System.Windows.Forms.DragEventHandler]({
+        param($eventSender, $eventArgs)
+        $dropped = $eventArgs.Data.GetData([System.Windows.Forms.DataFormats]::FileDrop)
+        foreach ($folder in (ConvertTo-PwmFolderPath -Path $dropped)) {
+            [void](Add-PwmFavorite -Repository $Repository -Path $folder)
+        }
+        & $refresh
+    }.GetNewClosure()))
 
     $tab.Controls.AddRange(@($list, $addBtn, $openBtn, $removeBtn, $renameBtn, $upBtn, $downBtn))
     return $tab
@@ -379,26 +437,37 @@ function New-PwmNotesTab {
         }
     }.GetNewClosure())
 
-    $newBtn.add_Click({
+    $newNote = {
         [void](New-PwmNote -Repository $Repository -Title '未命名')
         & $refresh
-    }.GetNewClosure())
+    }.GetNewClosure()
 
-    $saveBtn.add_Click({
+    $saveNote = {
         if ($list.SelectedIndex -ge 0) {
             [void](Set-PwmNote -Repository $Repository -Id $script:noteItems[$list.SelectedIndex].id `
                 -Title $titleBox.Text -Content $contentBox.Text)
             & $refresh
         }
-    }.GetNewClosure())
+    }.GetNewClosure()
 
-    $deleteBtn.add_Click({
+    $deleteNote = {
         if ($list.SelectedIndex -ge 0) {
             [void](Remove-PwmNote -Repository $Repository -Id $script:noteItems[$list.SelectedIndex].id)
             $titleBox.Clear(); $contentBox.Clear()
             & $refresh
         }
-    }.GetNewClosure())
+    }.GetNewClosure()
+
+    $newBtn.add_Click($newNote)
+    $saveBtn.add_Click($saveNote)
+    $deleteBtn.add_Click($deleteNote)
+
+    # Right-click context menu mirrors the new / save / delete buttons.
+    $noteMenu = New-Object System.Windows.Forms.ContextMenuStrip
+    [void]$noteMenu.Items.Add('新建', $null, [System.EventHandler]({ & $newNote }.GetNewClosure()))
+    [void]$noteMenu.Items.Add('保存', $null, [System.EventHandler]({ & $saveNote }.GetNewClosure()))
+    [void]$noteMenu.Items.Add('删除', $null, [System.EventHandler]({ & $deleteNote }.GetNewClosure()))
+    $list.ContextMenuStrip = $noteMenu
 
     $tab.Controls.AddRange(@($list, $titleBox, $contentBox, $newBtn, $saveBtn, $deleteBtn))
     return $tab
@@ -446,7 +515,7 @@ function New-PwmVaultTab {
     }.GetNewClosure()
     & $refresh
 
-    $copyBtn.add_Click({
+    $copyCredential = {
         if ($grid.SelectedRows.Count -gt 0) {
             $id = $script:vaultItems[$grid.SelectedRows[0].Index].id
             [void](Copy-PwmCredentialSecret -Repository $Repository -Id $id)
@@ -454,18 +523,18 @@ function New-PwmVaultTab {
                 [System.Windows.Forms.MessageBoxButtons]::OK,
                 [System.Windows.Forms.MessageBoxIcon]::Information)
         }
-    }.GetNewClosure())
+    }.GetNewClosure()
 
-    $addBtn.add_Click({
+    $addCredential = {
         $result = Show-PwmCredentialDialog -Title '添加凭证'
         if ($result) {
             [void](Add-PwmCredential -Repository $Repository -Name $result.Name `
                 -Account $result.Account -Secret $result.Secret -Notes $result.Notes)
             & $refresh
         }
-    }.GetNewClosure())
+    }.GetNewClosure()
 
-    $editBtn.add_Click({
+    $editCredential = {
         if ($grid.SelectedRows.Count -gt 0) {
             $entry = $script:vaultItems[$grid.SelectedRows[0].Index]
             $result = Show-PwmCredentialDialog -Title '编辑凭证' -Name $entry.name `
@@ -486,15 +555,28 @@ function New-PwmVaultTab {
                 & $refresh
             }
         }
-    }.GetNewClosure())
+    }.GetNewClosure()
 
-    $removeBtn.add_Click({
+    $removeCredential = {
         if ($grid.SelectedRows.Count -gt 0) {
             $id = $script:vaultItems[$grid.SelectedRows[0].Index].id
             [void](Remove-PwmCredential -Repository $Repository -Id $id)
             & $refresh
         }
-    }.GetNewClosure())
+    }.GetNewClosure()
+
+    $copyBtn.add_Click($copyCredential)
+    $addBtn.add_Click($addCredential)
+    $editBtn.add_Click($editCredential)
+    $removeBtn.add_Click($removeCredential)
+
+    # Right-click context menu mirrors the side buttons.
+    $vaultMenu = New-Object System.Windows.Forms.ContextMenuStrip
+    [void]$vaultMenu.Items.Add('复制密钥', $null, [System.EventHandler]({ & $copyCredential }.GetNewClosure()))
+    [void]$vaultMenu.Items.Add('添加', $null, [System.EventHandler]({ & $addCredential }.GetNewClosure()))
+    [void]$vaultMenu.Items.Add('编辑', $null, [System.EventHandler]({ & $editCredential }.GetNewClosure()))
+    [void]$vaultMenu.Items.Add('删除', $null, [System.EventHandler]({ & $removeCredential }.GetNewClosure()))
+    $grid.ContextMenuStrip = $vaultMenu
 
     $tab.Controls.AddRange(@($grid, $copyBtn, $addBtn, $editBtn, $removeBtn))
     return $tab
@@ -516,6 +598,40 @@ function New-PwmSettingsTab {
 
     $tab.Controls.Add($startupCheck)
     return $tab
+}
+
+function ConvertTo-PwmFolderPath {
+    <#
+    .SYNOPSIS
+        Normalises dropped Explorer paths to a de-duplicated list of folders.
+
+    .DESCRIPTION
+        Used by the drag-and-drop handlers of the file-search and folder
+        quick-link lists. A dropped directory is kept as-is; a dropped file is
+        mapped to its parent directory so dragging either a folder or a file
+        path adds a usable folder. Missing or blank entries are skipped.
+    #>
+    [CmdletBinding()]
+    [OutputType([string[]])]
+    param(
+        [string[]]$Path
+    )
+
+    $folders = [System.Collections.Generic.List[string]]::new()
+    foreach ($p in @($Path)) {
+        if ([string]::IsNullOrWhiteSpace($p)) { continue }
+        $folder = $null
+        if (Test-Path -LiteralPath $p -PathType Container) {
+            $folder = $p
+        }
+        elseif (Test-Path -LiteralPath $p -PathType Leaf) {
+            $folder = Split-Path -Path $p -Parent
+        }
+        if ($folder -and ($folder -notin $folders)) {
+            $folders.Add($folder)
+        }
+    }
+    return @($folders.ToArray())
 }
 
 function Show-PwmInputDialog {
