@@ -76,3 +76,4 @@ ci: run Pester tests on windows-latest
 - Keep changes small and focused; one logical change per PR.
 - Ensure CI is green (PSScriptAnalyzer + Pester on Windows).
 - Reference the related issue in the PR description.
+- Use Chinese to output the summary and comments of the PR.
