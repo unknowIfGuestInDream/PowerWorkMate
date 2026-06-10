@@ -45,9 +45,9 @@ Describe 'Launcher assets' {
             return
         }
 
-        $launcherHost = (Get-Process -Id $PID).Path
-        $output = & $launcherHost -NoLogo -NoProfile -File $script:launcherScript 2>&1 | Out-String
-        $LASTEXITCODE | Should -Not -Be 0
+        $currentPowerShell = (Get-Process -Id $PID).Path
+        $output = & $currentPowerShell -NoLogo -NoProfile -File $script:launcherScript 2>&1 | Out-String
+        $? | Should -BeFalse
         $output | Should -Match 'requires Windows with a desktop session'
     }
 }
