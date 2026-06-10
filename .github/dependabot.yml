@@ -1,0 +1,21 @@
+# Dependabot configuration for PowerWorkMate
+# Keeps GitHub Actions used in CI/packaging workflows up to date.
+# Docs: https://docs.github.com/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
+#
+# Note: PowerShell modules (e.g. Pester, PSScriptAnalyzer) are installed at
+# workflow runtime from the PowerShell Gallery and are not declared in a
+# manifest tracked by Dependabot, so no dedicated PowerShell ecosystem entry
+# is configured here. Add a `nuget`/`powershell` entry once a module manifest
+# (e.g. *.psd1 with RequiredModules or a packages.config) is committed.
+version: 2
+updates:
+  # Keep GitHub Actions versions current.
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "ci"
+    labels:
+      - "dependencies"
+      - "github-actions"
