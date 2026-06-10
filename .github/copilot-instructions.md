@@ -35,7 +35,7 @@ User data (workspaces, favorites, notes, credentials) is stored under `%APPDATA%
 
 ## Commit message convention (Angular)
 
-All commits **must** follow the [Angular Conventional Commits](https://github.com/angular/angular/blob/main/CONTRIBUTING.md#commit) specification:
+All commits and PR titles **must** follow the [Angular Conventional Commits](https://github.com/angular/angular/blob/main/CONTRIBUTING.md#commit) specification:
 
 ```
 <type>(<scope>): <subject>
