@@ -10,4 +10,10 @@ if exist "%WINPS%" (
     exit /b %ERRORLEVEL%
 )
 
+where pwsh.exe >nul 2>nul
+if errorlevel 1 (
+    echo [PowerWorkMate] Unable to find Windows PowerShell 5.1 or pwsh.exe.
+    exit /b 1
+)
+
 pwsh.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File "%LAUNCHER%" %*

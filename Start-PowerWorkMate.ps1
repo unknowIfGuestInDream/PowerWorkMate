@@ -31,7 +31,7 @@ function Get-PwmLauncherExecutable {
         return $windowsPowerShell
     }
 
-    $pwsh = Get-Command -Name 'pwsh', 'pwsh.exe' -ErrorAction SilentlyContinue | Select-Object -First 1
+    $pwsh = Get-Command -Name 'pwsh' -ErrorAction SilentlyContinue
     if ($pwsh) {
         return $pwsh.Source
     }

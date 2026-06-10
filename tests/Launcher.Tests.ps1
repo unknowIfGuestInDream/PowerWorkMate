@@ -21,6 +21,7 @@ Describe 'Launcher assets' {
 
         $content | Should -Match 'WindowsPowerShell\\v1\.0\\powershell\.exe'
         $content | Should -Match 'Start-PowerWorkMate\.ps1'
+        $content | Should -Match 'where pwsh\.exe'
         $content | Should -Match '%\*'
     }
 
