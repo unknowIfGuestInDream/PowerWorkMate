@@ -66,6 +66,24 @@ Describe 'MainForm UI wiring' {
         $result[0] | Should -Be $dir.FullName
     }
 
+    It 'shares per-tab list state through a hashtable, not a $script: variable' {
+        # Each event handler is created with GetNewClosure(), which gives the
+        # closure its own dynamic module scope. A $script: variable written by
+        # one handler is therefore invisible to the others, leaving the backing
+        # list $null and crashing with "Cannot index into a null array" on
+        # select / copy / new. State must live in a shared hashtable instead.
+        $script:mainForm | Should -Not -Match '\$script:noteItems'
+        $script:mainForm | Should -Not -Match '\$script:vaultItems'
+        $script:mainForm | Should -Not -Match '\$script:favItems'
+        $script:mainForm | Should -Match '\$state\.noteItems'
+        $script:mainForm | Should -Match '\$state\.vaultItems'
+        $script:mainForm | Should -Match '\$state\.favItems'
+    }
+
+    It 'guards list index access against stale selection indices' {
+        $script:mainForm | Should -Match '\$list\.SelectedIndex -lt \$state\.noteItems\.Count'
+    }
+
     It 'applies the application icon to the window and tray' {
         $script:mainForm | Should -Match 'New-PwmAppIcon'
         $script:trayIcon | Should -Match 'New-PwmAppIcon'

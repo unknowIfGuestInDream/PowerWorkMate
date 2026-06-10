@@ -254,11 +254,15 @@ function New-PwmFavoritesTab {
     $downBtn.SetBounds(592, 162, 58, 28)
     $downBtn.Anchor = 'Top,Right'
 
-    $script:favItems = @()
+    # Shared state lives in a hashtable so every event closure created via
+    # GetNewClosure() reads and writes the *same* instance. A plain $script:
+    # variable does not work here: each GetNewClosure() closure gets its own
+    # dynamic module scope, so refreshes would not be visible to other handlers.
+    $state = @{ favItems = @() }
     $refresh = {
         $list.Items.Clear()
-        $script:favItems = @(Get-PwmFavorite -Repository $Repository | Sort-Object order)
-        foreach ($f in $script:favItems) {
+        $state.favItems = @(Get-PwmFavorite -Repository $Repository | Sort-Object order)
+        foreach ($f in $state.favItems) {
             [void]$list.Items.Add(('{0}  ->  {1}' -f $f.name, $f.path))
         }
     }.GetNewClosure()
@@ -274,20 +278,20 @@ function New-PwmFavoritesTab {
 
     $openFavorite = {
         if ($list.SelectedIndex -ge 0) {
-            Open-PwmFavorite -Path $script:favItems[$list.SelectedIndex].path
+            Open-PwmFavorite -Path $state.favItems[$list.SelectedIndex].path
         }
     }.GetNewClosure()
 
     $removeFavorite = {
         if ($list.SelectedIndex -ge 0) {
-            [void](Remove-PwmFavorite -Repository $Repository -Id $script:favItems[$list.SelectedIndex].id)
+            [void](Remove-PwmFavorite -Repository $Repository -Id $state.favItems[$list.SelectedIndex].id)
             & $refresh
         }
     }.GetNewClosure()
 
     $renameFavorite = {
         if ($list.SelectedIndex -ge 0) {
-            $current = $script:favItems[$list.SelectedIndex]
+            $current = $state.favItems[$list.SelectedIndex]
             $newName = Show-PwmInputDialog -Title '重命名快链' -Prompt '请输入新的名称：' -Default $current.name
             if ($newName) {
                 [void](Rename-PwmFavorite -Repository $Repository -Id $current.id -NewName $newName)
@@ -306,10 +310,10 @@ function New-PwmFavoritesTab {
         $index = $list.SelectedIndex
         if ($index -lt 0) { return }
         $target = $index + $Delta
-        if ($target -lt 0 -or $target -ge $script:favItems.Count) { return }
+        if ($target -lt 0 -or $target -ge $state.favItems.Count) { return }
 
         $ids = [System.Collections.Generic.List[string]]::new()
-        foreach ($f in $script:favItems) { $ids.Add($f.id) }
+        foreach ($f in $state.favItems) { $ids.Add($f.id) }
         $moved = $ids[$index]
         $ids.RemoveAt($index)
         $ids.Insert($target, $moved)
@@ -419,17 +423,19 @@ function New-PwmNotesTab {
     $deleteBtn.SetBounds(460, 500, 100, 28)
     $deleteBtn.Anchor = 'Bottom,Left'
 
-    $script:noteItems = @()
+    # Shared state in a hashtable so every GetNewClosure() event handler reads
+    # and writes the same instance (see the favorites tab for the rationale).
+    $state = @{ noteItems = @() }
     $refresh = {
         $list.Items.Clear()
-        $script:noteItems = @(Get-PwmNoteList -Repository $Repository)
-        foreach ($n in $script:noteItems) { [void]$list.Items.Add($n.title) }
+        $state.noteItems = @(Get-PwmNoteList -Repository $Repository)
+        foreach ($n in $state.noteItems) { [void]$list.Items.Add($n.title) }
     }.GetNewClosure()
     & $refresh
 
     $list.add_SelectedIndexChanged({
-        if ($list.SelectedIndex -ge 0) {
-            $note = Get-PwmNote -Repository $Repository -Id $script:noteItems[$list.SelectedIndex].id
+        if ($list.SelectedIndex -ge 0 -and $list.SelectedIndex -lt $state.noteItems.Count) {
+            $note = Get-PwmNote -Repository $Repository -Id $state.noteItems[$list.SelectedIndex].id
             if ($note) {
                 $titleBox.Text = $note.title
                 $contentBox.Text = $note.content
@@ -443,16 +449,16 @@ function New-PwmNotesTab {
     }.GetNewClosure()
 
     $saveNote = {
-        if ($list.SelectedIndex -ge 0) {
-            [void](Set-PwmNote -Repository $Repository -Id $script:noteItems[$list.SelectedIndex].id `
+        if ($list.SelectedIndex -ge 0 -and $list.SelectedIndex -lt $state.noteItems.Count) {
+            [void](Set-PwmNote -Repository $Repository -Id $state.noteItems[$list.SelectedIndex].id `
                 -Title $titleBox.Text -Content $contentBox.Text)
             & $refresh
         }
     }.GetNewClosure()
 
     $deleteNote = {
-        if ($list.SelectedIndex -ge 0) {
-            [void](Remove-PwmNote -Repository $Repository -Id $script:noteItems[$list.SelectedIndex].id)
+        if ($list.SelectedIndex -ge 0 -and $list.SelectedIndex -lt $state.noteItems.Count) {
+            [void](Remove-PwmNote -Repository $Repository -Id $state.noteItems[$list.SelectedIndex].id)
             $titleBox.Clear(); $contentBox.Clear()
             & $refresh
         }
@@ -507,17 +513,19 @@ function New-PwmVaultTab {
     $removeBtn.SetBounds(720, 124, 150, 28)
     $removeBtn.Anchor = 'Top,Right'
 
-    $script:vaultItems = @()
+    # Shared state in a hashtable so every GetNewClosure() event handler reads
+    # and writes the same instance (see the favorites tab for the rationale).
+    $state = @{ vaultItems = @() }
     $refresh = {
-        $script:vaultItems = @(Get-PwmCredential -Repository $Repository)
-        $grid.DataSource = [System.Collections.ArrayList]@($script:vaultItems |
+        $state.vaultItems = @(Get-PwmCredential -Repository $Repository)
+        $grid.DataSource = [System.Collections.ArrayList]@($state.vaultItems |
             Select-Object name, account, secretMasked, notes)
     }.GetNewClosure()
     & $refresh
 
     $copyCredential = {
         if ($grid.SelectedRows.Count -gt 0) {
-            $id = $script:vaultItems[$grid.SelectedRows[0].Index].id
+            $id = $state.vaultItems[$grid.SelectedRows[0].Index].id
             [void](Copy-PwmCredentialSecret -Repository $Repository -Id $id)
             [System.Windows.Forms.MessageBox]::Show('已复制', 'PowerWorkMate',
                 [System.Windows.Forms.MessageBoxButtons]::OK,
@@ -536,7 +544,7 @@ function New-PwmVaultTab {
 
     $editCredential = {
         if ($grid.SelectedRows.Count -gt 0) {
-            $entry = $script:vaultItems[$grid.SelectedRows[0].Index]
+            $entry = $state.vaultItems[$grid.SelectedRows[0].Index]
             $result = Show-PwmCredentialDialog -Title '编辑凭证' -Name $entry.name `
                 -Account $entry.account -Notes $entry.notes -SecretIsOptional
             if ($result) {
@@ -559,7 +567,7 @@ function New-PwmVaultTab {
 
     $removeCredential = {
         if ($grid.SelectedRows.Count -gt 0) {
-            $id = $script:vaultItems[$grid.SelectedRows[0].Index].id
+            $id = $state.vaultItems[$grid.SelectedRows[0].Index].id
             [void](Remove-PwmCredential -Repository $Repository -Id $id)
             & $refresh
         }
