@@ -31,7 +31,7 @@ function Get-PwmLauncherExecutable {
         return $windowsPowerShell
     }
 
-    $pwsh = Get-Command -Name 'pwsh.exe' -ErrorAction SilentlyContinue
+    $pwsh = Get-Command -Name 'pwsh', 'pwsh.exe' -ErrorAction SilentlyContinue | Select-Object -First 1
     if ($pwsh) {
         return $pwsh.Source
     }
@@ -66,7 +66,7 @@ if ($RemainingArguments) {
 
 $process = Start-Process -FilePath $powerShell -ArgumentList $arguments -WorkingDirectory $root -PassThru
 if (-not $process -or -not $process.Id) {
-    throw 'Failed to start PowerWorkMate.'
+    throw ("Failed to start PowerWorkMate via '{0}'." -f $powerShell)
 }
 
 Write-Verbose ("PowerWorkMate started with PID {0}." -f $process.Id)

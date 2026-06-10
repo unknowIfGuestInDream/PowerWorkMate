@@ -35,14 +35,18 @@ Describe 'Launcher assets' {
     }
 
     It 'fails fast with a clear message on non-Windows hosts' {
+        $runningOnWindows = $false
         if (Get-Variable -Name 'IsWindows' -Scope Global -ErrorAction SilentlyContinue) {
-            if ($IsWindows) {
-                Set-ItResult -Skipped -Because 'Launcher integration is intended for Windows hosts.'
-                return
-            }
+            $runningOnWindows = [bool]$IsWindows
         }
 
-        $output = & pwsh -NoLogo -NoProfile -File $script:launcherScript 2>&1 | Out-String
+        if ($runningOnWindows) {
+            Set-ItResult -Skipped -Because 'Launcher integration is intended for Windows hosts.'
+            return
+        }
+
+        $launcherHost = (Get-Process -Id $PID).Path
+        $output = & $launcherHost -NoLogo -NoProfile -File $script:launcherScript 2>&1 | Out-String
         $LASTEXITCODE | Should -Not -Be 0
         $output | Should -Match 'requires Windows with a desktop session'
     }
