@@ -35,7 +35,7 @@ Describe 'Launcher assets' {
     }
 
     It 'fails fast with a clear message on non-Windows hosts' {
-        $runningOnWindows = $false
+        $runningOnWindows = $true
         if (Get-Variable -Name 'IsWindows' -Scope Global -ErrorAction SilentlyContinue) {
             $runningOnWindows = [bool]$IsWindows
         }

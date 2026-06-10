@@ -65,7 +65,7 @@ if ($RemainingArguments) {
 }
 
 $process = Start-Process -FilePath $powerShell -ArgumentList $arguments -WorkingDirectory $root -PassThru
-if (-not $process -or -not $process.Id) {
+if (-not $process) {
     throw ("Failed to start PowerWorkMate via '{0}'." -f $powerShell)
 }
 
