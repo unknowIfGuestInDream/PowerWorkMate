@@ -84,6 +84,22 @@ Describe 'MainForm UI wiring' {
         $script:mainForm | Should -Match '\$list\.SelectedIndex -lt \$state\.noteItems\.Count'
     }
 
+    It 'shares mutated state across independent GetNewClosure() handlers' {
+        # Reproduces the tab wiring without Windows Forms: a refresh closure and
+        # a reader closure created from the same scope. With a hashtable the
+        # reader observes the refresh's update; the old $script: pattern left the
+        # reader with a $null array and crashed when indexed.
+        $build = {
+            $state = @{ items = @() }
+            $refresh = { $state.items = @('a', 'b', 'c') }.GetNewClosure()
+            $read = { param($i) $state.items[$i] }.GetNewClosure()
+            [pscustomobject]@{ Refresh = $refresh; Read = $read }
+        }
+        $handlers = & $build
+        & $handlers.Refresh
+        (& $handlers.Read 1) | Should -Be 'b'
+    }
+
     It 'applies the application icon to the window and tray' {
         $script:mainForm | Should -Match 'New-PwmAppIcon'
         $script:trayIcon | Should -Match 'New-PwmAppIcon'
