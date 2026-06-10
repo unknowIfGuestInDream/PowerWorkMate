@@ -1,0 +1,17 @@
+# User data (should live in %APPDATA%, never committed)
+/data/
+data/
+
+# PowerShell / editor artifacts
+*.log
+*.tmp
+*~
+
+# Test output
+TestResults*.xml
+coverage*.xml
+.pwm-test-*/
+
+# OS noise
+Thumbs.db
+.DS_Store
