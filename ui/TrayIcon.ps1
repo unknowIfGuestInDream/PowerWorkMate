@@ -140,6 +140,9 @@ function New-PwmTrayIcon {
     $notify = New-Object System.Windows.Forms.NotifyIcon
     $notify.Text = 'PowerWorkMate'
     $notify.Icon = [System.Drawing.SystemIcons]::Application
+    if (Get-Command -Name New-PwmAppIcon -ErrorAction SilentlyContinue) {
+        try { $notify.Icon = New-PwmAppIcon } catch { Write-Verbose $_.Exception.Message }
+    }
     $notify.Visible = $true
 
     $menu = New-Object System.Windows.Forms.ContextMenuStrip

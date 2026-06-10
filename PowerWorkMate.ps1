@@ -42,6 +42,7 @@ Import-Module (Join-Path $root 'modules/Notes.psm1') -Force
 Import-Module (Join-Path $root 'modules/CredentialVault.psm1') -Force
 
 # --- UI --------------------------------------------------------------------
+. (Join-Path $root 'ui/AppIcon.ps1')
 . (Join-Path $root 'ui/TrayIcon.ps1')
 . (Join-Path $root 'ui/MainForm.ps1')
 
@@ -50,6 +51,35 @@ $repository = New-PwmRepository -Backend $Backend
 
 Add-Type -AssemblyName System.Windows.Forms
 [System.Windows.Forms.Application]::EnableVisualStyles()
+
+# Hide the host console window so only the UI (and tray icon) remain visible.
+# Launching with "powershell.exe -File ..." creates a command window next to the
+# UI; SW_HIDE removes it. Guarded for Windows and wrapped so a failure here can
+# never stop the application from starting.
+$onWindows = $true
+if (Get-Variable -Name 'IsWindows' -Scope Global -ErrorAction SilentlyContinue) {
+    $onWindows = [bool]$IsWindows
+}
+if ($onWindows) {
+    try {
+        if (-not ('PwmNative.ConsoleWindow' -as [type])) {
+            Add-Type -Namespace 'PwmNative' -Name 'ConsoleWindow' -MemberDefinition @'
+[System.Runtime.InteropServices.DllImport("kernel32.dll")]
+public static extern System.IntPtr GetConsoleWindow();
+
+[System.Runtime.InteropServices.DllImport("user32.dll")]
+public static extern bool ShowWindow(System.IntPtr hWnd, int nCmdShow);
+'@
+        }
+        $consoleHandle = [PwmNative.ConsoleWindow]::GetConsoleWindow()
+        if ($consoleHandle -ne [System.IntPtr]::Zero) {
+            [void][PwmNative.ConsoleWindow]::ShowWindow($consoleHandle, 0) # 0 = SW_HIDE
+        }
+    }
+    catch {
+        Write-Verbose ("Unable to hide console window: {0}" -f $_.Exception.Message)
+    }
+}
 
 $form = New-PwmMainForm -Repository $repository
 $tray = New-PwmTrayIcon -Form $form

@@ -65,7 +65,7 @@ if ($RemainingArguments) {
 }
 
 try {
-    $process = Start-Process -FilePath $powerShell -ArgumentList $arguments -WorkingDirectory $root -PassThru
+    $process = Start-Process -FilePath $powerShell -ArgumentList $arguments -WorkingDirectory $root -WindowStyle Hidden -PassThru
 }
 catch {
     throw ("Failed to start PowerWorkMate via '{0}': {1}" -f $powerShell, $_.Exception.Message)
