@@ -1,0 +1,22 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "PowerWorkMate",
+      "type": "PowerShell",
+      "request": "launch",
+      "script": "${workspaceFolder}/Start-PowerWorkMate.ps1",
+      "cwd": "${workspaceFolder}"
+    },
+    {
+      "name": "PowerWorkMate (Minimized)",
+      "type": "PowerShell",
+      "request": "launch",
+      "script": "${workspaceFolder}/Start-PowerWorkMate.ps1",
+      "args": [
+        "-Minimized"
+      ],
+      "cwd": "${workspaceFolder}"
+    }
+  ]
+}

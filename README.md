@@ -30,13 +30,23 @@ PowerWorkMate/
 ## 运行
 
 ```powershell
-# Windows 桌面会话
-pwsh -File .\PowerWorkMate.ps1
+# 推荐：Windows PowerShell 5.1 + STA（避免 VS Code 默认 pwsh 启动失败）
+powershell.exe -NoProfile -ExecutionPolicy Bypass -Sta -File .\PowerWorkMate.ps1
+
+# 一键启动（仓库已提供启动器）
+.\Start-PowerWorkMate.cmd
+
 # 启动即最小化到托盘
-pwsh -File .\PowerWorkMate.ps1 -Minimized
+.\Start-PowerWorkMate.cmd -Minimized
 ```
 
 > UI 依赖 Windows Forms，仅在 Windows 桌面会话下运行。模块与服务层为平台无关逻辑，可在任意平台单独测试。
+
+### VS Code 启动
+
+- 仓库已提供 `.vscode/launch.json`。
+- 在 VS Code 中打开仓库后，按 `F5` 或在“运行和调试”里选择 `PowerWorkMate` / `PowerWorkMate (Minimized)` 即可启动。
+- 启动配置会先调用 `Start-PowerWorkMate.ps1`，再用 Windows PowerShell 5.1（找不到时回退到 `pwsh.exe`）以 `-Sta` 模式启动主程序。
 
 ## 开发
 
