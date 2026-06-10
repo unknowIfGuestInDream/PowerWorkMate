@@ -471,15 +471,18 @@ function New-PwmVaultTab {
             $result = Show-PwmCredentialDialog -Title '编辑凭证' -Name $entry.name `
                 -Account $entry.account -Notes $entry.notes -SecretIsOptional
             if ($result) {
-                if ([string]::IsNullOrEmpty($result.Secret)) {
-                    [void](Set-PwmCredential -Repository $Repository -Id $entry.id `
-                        -Name $result.Name -Account $result.Account -Notes $result.Notes)
+                $params = @{
+                    Repository = $Repository
+                    Id         = $entry.id
+                    Name       = $result.Name
+                    Account    = $result.Account
+                    Notes      = $result.Notes
                 }
-                else {
-                    [void](Set-PwmCredential -Repository $Repository -Id $entry.id `
-                        -Name $result.Name -Account $result.Account -Notes $result.Notes `
-                        -Secret $result.Secret)
+                # An empty secret on edit means "keep the existing one".
+                if (-not [string]::IsNullOrEmpty($result.Secret)) {
+                    $params['Secret'] = $result.Secret
                 }
+                [void](Set-PwmCredential @params)
                 & $refresh
             }
         }
@@ -672,7 +675,7 @@ function Show-PwmCredentialDialog {
         if ($dialog.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) {
             return [pscustomobject]@{
                 Name    = $nameBox.Text.Trim()
-                Account = $accountBox.Text
+                Account = $accountBox.Text.Trim()
                 Secret  = $secretBox.Text
                 Notes   = $notesBox.Text
             }
