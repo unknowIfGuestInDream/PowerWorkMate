@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     MainForm - the PowerWorkMate main window (Windows Forms).
 

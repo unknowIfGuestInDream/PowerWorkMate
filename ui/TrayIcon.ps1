@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     TrayIcon - module four: system tray integration and run-at-startup.
 
