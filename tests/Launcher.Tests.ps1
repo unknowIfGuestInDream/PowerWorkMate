@@ -14,6 +14,7 @@ Describe 'Launcher assets' {
         $content | Should -Match 'PowerWorkMate\.ps1'
         $content | Should -Match 'Start-Process'
         $content | Should -Match '-PassThru'
+        $content | Should -Match '-WindowStyle Hidden'
     }
 
     It 'provides a one-click cmd launcher that bootstraps through Windows PowerShell' {
